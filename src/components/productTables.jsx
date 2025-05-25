@@ -8,10 +8,12 @@ const ProductTable = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await api.get('/products'); // Adjust endpoint based on your backend
-        setProducts(response.data);
+        const response = await api.get('/products');
+        console.log('API Response:', response.data); 
+        setProducts(Array.isArray(response.data) ? response.data : response.data.data || []);
       } catch (error) {
         console.error('Error fetching products:', error);
+        setProducts([]); // Reset to empty array on error
       } finally {
         setLoading(false);
       }
