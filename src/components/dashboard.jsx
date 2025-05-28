@@ -1,96 +1,132 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import ProductTable from './productTables';
+import axios from 'axios';
+import StatCard from './graph/statCards';
+import SalesBarChart from './graph/BarChart';
+import RevenueLineChart from './graph/LineChart';
+import SalesPieChart from './graph/PieChart';
+import CustomersTable from './graph/DataTable';
+import ActivityFeed from './graph/ActivityFeeds';
 import Sidebar from './sidebar';
-import api from '../utils/api'; // Import the API utility
 
-const Dashboard = () => {
-  const [stats, setStats] = useState({
-    totalProduct: 0,
-    productRevenue: '$0.00',
-    productSold: 0,
-    avgMonthlySales: 0,
-  });
+function Dashboard() {
+  const [stats, setStats] = useState({});
+  const [barData, setBarData] = useState([]);
+  const [lineData, setLineData] = useState([]);
+  const [pieData, setPieData] = useState([]);
+  const [customers, setCustomers] = useState([]);
+  const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchData = async () => {
       try {
-        const response = await api.get('/products/stats'); // Adjust endpoint based on your backend
-        setStats(response.data);
-      } catch (error) {
-        console.error('Error fetching stats:', error);
-      } finally {
+        setLoading(true);
+        const token = localStorage.getItem('AccessToken');
+        const headers = { Authorization: `Bearer ${token}` };
+
+        const [
+          statsResponse,
+          barResponse,
+          lineResponse,
+          pieResponse,
+          customersResponse,
+          activitiesResponse,
+        ] = await Promise.all([
+          axios.get('http://localhost:8085/api/dashboard/stats', { headers }),
+          axios.get('http://localhost:8085/api/sales/bar', { headers }),
+          axios.get('http://localhost:8085/api/sales/line', { headers }),
+          axios.get('http://localhost:8085/api/sales/pie', { headers }),
+          axios.get('http://localhost:8085/api/customers', { headers }),
+          axios.get('http://localhost:8085/api/activities', { headers }),
+        ]);
+
+        setStats(statsResponse.data);
+        setBarData(barResponse.data);
+        setLineData(lineResponse.data);
+        setPieData(pieResponse.data);
+        setCustomers(customersResponse.data);
+        setActivities(activitiesResponse.data);
+        setLoading(false);
+      } catch (err) {
+        console.error('Fetch error:', err);
+        if (err.response) {
+          setError(`Failed to load data: ${err.response.status} - ${err.response.data || err.message}`);
+        } else {
+          setError(`Failed to load data: ${err.message}`);
+        }
         setLoading(false);
       }
     };
-    fetchStats();
+
+    fetchData();
   }, []);
 
-  if (loading) return <div className="p-4">Loading...</div>;
+  if (loading) return <p className="text-center mt-5">Loading...</p>;
+  if (error) return <p className="text-center mt-5 text-danger">{error}</p>;
 
   return (
-    <div className="container-fluid">
-      <div className="row">
-        <Sidebar />
-        <div className="col-10 p-4">
-          <div className="d-flex justify-content-between align-items-center mb-4">
-            <h2>Product</h2>
-            <div>
-              <button className="btn btn-outline-secondary me-2">Table View</button>
-              <button className="btn btn-outline-secondary me-2">Filter</button>
-              <button className="btn btn-outline-secondary me-2">Sort</button>
-              <button className="btn btn-outline-secondary me-2">Show Stats</button>
-              <button className="btn btn-primary me-3">Customize</button>
-              <button className="btn btn-outline-secondary me-2">Export</button>
-              <button
-                className="btn btn-success"
-                onClick={() => navigate('/add-product')}
-              >
-                Add New Product
-              </button>
+    <div className="d-flex vh-100" style={{ overflow: 'hidden' }}>
+      {/* Sidebar */}
+      <div
+        className="bg-light"
+        style={{ width: '250px', height: '100%', position: 'fixed', top: 0, left: 0, padding: '20px', borderRight: '1px solid #dee2e6' }} >
+        <Sidebar/>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-grow-1" style={{ marginLeft: '250px', padding: '20px', overflowY: 'auto' }}>
+        <div className="container-fluid">
+          {/* Stat Cards */}
+          <div className="row g-4 mb-4">
+            <div className="col-12 col-sm-4">
+              <StatCard title="Total Products" value={stats.totalProduct || 0} />
+            </div>
+            <div className="col-12 col-sm-4">
+              <StatCard title="Revenue (This Month)" value={stats.productRevenue ? `$${stats.productRevenue.toFixed(2)}` : '$0.00'} />
+            </div>
+            <div className="col-12 col-sm-4">
+              <StatCard title="Products Sold" value={stats.productSold || 0} />
             </div>
           </div>
 
-          {/* Stats Section */}
-          <div className="row mb-4">
-            <div className="col-md-3">
-              <div className="card p-3 text-center">
-                <h6>Total Product</h6>
-                <h4>{stats.totalProduct}</h4>
-                <p className="text-success">vs last month +3 product</p>
+          {/* Bar and Line Charts */}
+          <div className="row g-4 mb-4">
+            <div className="col-12 col-md-6">
+              <div className="bg-white p-3 rounded shadow" style={{ height: '400px' }}>
+                <SalesBarChart data={barData} />
               </div>
             </div>
-            <div className="col-md-3">
-              <div className="card p-3 text-center">
-                <h6>Product Revenue</h6>
-                <h4>{stats.productRevenue}</h4>
-                <p className="text-success">vs last month +9%</p>
-              </div>
-            </div>
-            <div className="col-md-3">
-              <div className="card p-3 text-center">
-                <h6>Product Sold</h6>
-                <h4>{stats.productSold}</h4>
-                <p className="text-success">vs last month +7%</p>
-              </div>
-            </div>
-            <div className="col-md-3">
-              <div className="card p-3 text-center">
-                <h6>Avg Monthly Sales</h6>
-                <h4>{stats.avgMonthlySales}</h4>
-                <p className="text-success">vs last month +6%</p>
+            <div className="col-12 col-md-6">
+              <div className="bg-white p-3 rounded shadow" style={{ height: '400px' }}>
+                <RevenueLineChart data={lineData} />
               </div>
             </div>
           </div>
 
-          {/* Product Table */}
-          <ProductTable />
+          {/* Pie Chart and Customer Table */}
+          <div className="row g-4 mb-4">
+            <div className="col-12 col-md-6">
+              <div className="bg-white p-3 rounded shadow" style={{ height: '400px' }}>
+                <SalesPieChart data={pieData} />
+              </div>
+            </div>
+            <div className="col-12 col-md-6">
+              <div className="bg-white p-3 rounded shadow">
+                <CustomersTable rows={customers} />
+              </div>
+            </div>
+          </div>
+
+          {/* Activity Feed */}
+          <div className="bg-white p-3 rounded shadow">
+            <h5 className="mb-3">Recent Activities</h5>
+            <ActivityFeed activities={activities} />
+          </div>
         </div>
       </div>
     </div>
   );
-};
+}
 
 export default Dashboard;

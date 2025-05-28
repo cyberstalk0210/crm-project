@@ -9,39 +9,42 @@ const Register = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  setError('');
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
 
-  const formData = new FormData();
-  formData.append('userName', userName);
-  formData.append('password', password);
-  formData.append('prePassword', prePassword);
+    const payload = {
+      username: userName,
+      password: password,
+      prePassword: prePassword
+    };
 
-  try {
-    const response = await axios.post('http://localhost:8085/api/auth/register', formData, {
-      headers: {
-        'Content-Type': 'application/json'
+    try {
+      const response = await axios.post('http://localhost:8085/api/auth/register', payload, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log("Ro'yxatdan o'tish muvaffaqiyatli:", response.data);
+
+      if (response.data.success) {
+        alert(response.data.message || 'Ro\'yxatdan o\'tish muvaffaqiyatli!');
+        navigate('/login');
+      } else {
+        setError(response.data.message || 'Xatolik yuz berdi.');
       }
-    });
 
-    console.log('Ro‘yxatdan o‘tish muvaffaqiyatli:', response);
-
-    if (response.status === 200) {
-      alert('Registration successful! Please log in.');
-      navigate('/login');
+    } catch (error) {
+      if (error.response) {
+        console.error('Serverdan xato:', error.response.data);
+        setError(error.response.data.message || 'Server xatosi yuz berdi.');
+      } else {
+        console.error('Tarmoq yoki boshqa xato:', error.message);
+        setError('Tarmoq xatosi yoki serverga ulanib bo‘lmadi.');
+      }
     }
-  } catch (error) {
-    if (error.response) {
-      console.error('Serverdan xato:', error.response.data);
-      setError(error.response.data.message || 'Server xatosi yuz berdi.');
-    } else {
-      console.error('Tarmoq yoki boshqa xato:', error.message);
-      setError('Tarmoq xatosi yoki serverga ulanib bo‘lmadi.');
-    }
-  }
-};
-
+  };
 
   return (
     <div className="container mt-5">
@@ -73,9 +76,8 @@ const handleSubmit = async (e) => {
                   required
                 />
               </div>
-
               <div className="mb-3">
-                <label htmlFor="password" className="form-label">Pre Password</label>
+                <label htmlFor="prepassword" className="form-label">Pre Password</label>
                 <input
                   type="password"
                   className="form-control"

@@ -1,46 +1,52 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import api from '../utils/api';
-import { useNavigate, Link } from 'react-router-dom';
+import axios from 'axios';
 import Sidebar from './sidebar';
+import { useNavigate } from 'react-router-dom';
 
-const ProductTable = () => {
-  const [products, setProducts] = useState([]);
+const UsersTable = () => {
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5); // Default items per page
-  const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
+  const [sortConfig, setSortConfig] = useState({ key: 'id', direction: 'asc' });
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [productToDelete, setProductToDelete] = useState(null);
+  const [userToDelete, setUserToDelete] = useState(null);
   const navigate = useNavigate();
 
-  // Fetch products
+  // Fetch users from backend API
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchUsers = async () => {
       try {
         setLoading(true);
-        const response = await api.get('/products');
-        console.log('API Response:', response.data);
-        setProducts(Array.isArray(response.data) ? response.data : response.data.data || []);
-      } catch (error) {
-        console.error('Error fetching products:', error);
-        setProducts([]);
+        const response = await axios.get('http://localhost:8085/api/users/list', {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('AccessToken')}`,
+          },
+        });
+        setUsers(Array.isArray(response.data) ? response.data : []);
+      } catch (err) {
+        setError(err.message || 'Error fetching users');
+        setUsers([]);
       } finally {
         setLoading(false);
       }
     };
-    fetchProducts();
+
+    fetchUsers();
   }, []);
 
   // Sorting logic
-  const sortedProducts = useMemo(() => {
-    let sortableProducts = [...products];
+  const sortedUsers = useMemo(() => {
+    let sortableUsers = [...users];
     if (sortConfig.key) {
-      sortableProducts.sort((a, b) => {
+      sortableUsers.sort((a, b) => {
         let aValue = a[sortConfig.key];
         let bValue = b[sortConfig.key];
 
-        // Handle numeric fields (price, sales, revenue, stock)
-        if (['price', 'sales', 'revenue', 'stock'].includes(sortConfig.key)) {
+        // Handle numeric fields (ID)
+        if (sortConfig.key === 'id') {
           aValue = Number(aValue) || 0;
           bValue = Number(bValue) || 0;
         }
@@ -50,8 +56,8 @@ const ProductTable = () => {
         return 0;
       });
     }
-    return sortableProducts;
-  }, [products, sortConfig]);
+    return sortableUsers;
+  }, [users, sortConfig]);
 
   const requestSort = (key) => {
     setSortConfig((prev) => ({
@@ -61,9 +67,9 @@ const ProductTable = () => {
   };
 
   // Pagination logic
-  const totalItems = sortedProducts.length;
+  const totalItems = sortedUsers.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
-  const paginatedProducts = sortedProducts.slice(
+  const paginatedUsers = sortedUsers.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
@@ -79,113 +85,89 @@ const ProductTable = () => {
     setCurrentPage(1); // Reset to first page when items per page changes
   };
 
-  // Delete confirmation
-  const handleDeleteClick = (product) => {
-    setProductToDelete(product);
+  // Handle edit action
+  const handleEdit = (id) => {
+    navigate(`/users/edit/${id}`);
+  };
+
+  // Handle delete action
+  const handleDeleteClick = (user) => {
+    setUserToDelete(user);
     setShowDeleteModal(true);
   };
 
   const confirmDelete = async () => {
-    if (!productToDelete) return;
+    if (!userToDelete) return;
 
     try {
-      await api.delete(`/products/${productToDelete.id}`);
-      setProducts(products.filter((p) => p.id !== productToDelete.id));
+      await axios.delete(`http://localhost:8085/api/users/${userToDelete.id}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('AccessToken')}`,
+        },
+      });
+      setUsers(users.filter((user) => user.id !== userToDelete.id));
       setShowDeleteModal(false);
-      setProductToDelete(null);
-    } catch (error) {
-      console.error('Error deleting product:', error);
-      alert('Failed to delete product.');
+      setUserToDelete(null);
+    } catch (err) {
+      setError('Failed to delete user: ' + err.message);
     }
   };
 
-  if (loading) return <div className="p-4 text-center">Loading...</div>;
+  // Render loading, error, or table
+  if (loading) return <div className="text-center my-5">Loading users...</div>;
+  if (error) return <div className="alert alert-danger my-5">{error}</div>;
 
   return (
     <div className="d-flex vh-100" style={{ overflow: 'hidden' }}>
       {/* Sidebar */}
       <div
         className="bg-light"
-        style={{
-          width: '250px',
-          height: '100%',
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          padding: '20px',
-          borderRight: '1px solid #dee2e6',
-        }}
-      >
-        <Sidebar />
+        style={{ width: '250px', height: '100%', position: 'fixed', top: 0, left: 0, padding: '20px', borderRight: '1px solid #dee2e6' }} >
+        <Sidebar/>
       </div>
 
       {/* Main Content */}
       <div className="flex-grow-1" style={{ marginLeft: '250px', padding: '20px', overflowY: 'auto' }}>
         <div className="container-fluid">
-          <div className="d-flex justify-content-between align-items-center mb-4">
-            <h3 className="mb-0">Products</h3>
-            <Link to="/add-product" className="btn btn-primary">Add Product</Link>
-          </div>
+          <h3 className="mb-4">Users</h3>
 
-          {products.length === 0 ? (
-            <div className="alert alert-info text-center">No products found.</div>
+          {users.length === 0 ? (
+            <div className="alert alert-info text-center">No users found.</div>
           ) : (
             <>
-              {/* Product Table */}
+              {/* Users Table */}
               <div className="table-responsive bg-white p-3 rounded shadow">
-                <table className="table table-striped table-hover">
-                  <thead>
+                <table className="table table-striped table-hover table-bordered">
+                  <thead className="table-dark">
                     <tr>
-                      <th onClick={() => requestSort('name')} style={{ cursor: 'pointer' }}>
-                        Product {sortConfig.key === 'name' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}
+                      <th scope="col" onClick={() => requestSort('id')} style={{ cursor: 'pointer' }}>
+                        ID {sortConfig.key === 'id' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}
                       </th>
-                      <th onClick={() => requestSort('price')} style={{ cursor: 'pointer' }}>
-                        Price {sortConfig.key === 'price' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}
+                      <th scope="col" onClick={() => requestSort('username')} style={{ cursor: 'pointer' }}>
+                        Name {sortConfig.key === 'username' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}
                       </th>
-                      <th onClick={() => requestSort('sales')} style={{ cursor: 'pointer' }}>
-                        Sales {sortConfig.key === 'sales' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}
+                      <th scope="col" onClick={() => requestSort('role')} style={{ cursor: 'pointer' }}>
+                        Role {sortConfig.key === 'role' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}
                       </th>
-                      <th onClick={() => requestSort('revenue')} style={{ cursor: 'pointer' }}>
-                        Revenue {sortConfig.key === 'revenue' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}
-                      </th>
-                      <th onClick={() => requestSort('stock')} style={{ cursor: 'pointer' }}>
-                        Stock {sortConfig.key === 'stock' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}
-                      </th>
-                      <th>Status</th>
-                      <th>Actions</th>
+                      <th scope="col">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {paginatedProducts.map((product) => (
-                      <tr key={product.id || product.name}>
-                        <td>{product.name}</td>
-                        <td>${Number(product.price).toFixed(2)}</td>
-                        <td>{product.sales || 0} pcs</td>
-                        <td>${Number(product.revenue || 0).toFixed(2)}</td>
-                        <td>{product.stock || 0}</td>
-                        <td>
-                          <span
-                            className={`badge ${
-                              product.status === 'In Stock'
-                                ? 'bg-success'
-                                : product.status === 'Out of Stock'
-                                ? 'bg-danger'
-                                : 'bg-warning'
-                            }`}
-                          >
-                            {product.status || 'In Stock'}
-                          </span>
-                        </td>
+                    {paginatedUsers.map((user) => (
+                      <tr key={user.id}>
+                        <td>{user.id}</td>
+                        <td>{user.username}</td>
+                        <td>{user.role}</td>
                         <td>
                           <button
-                            className="btn btn-warning btn-sm me-2"
-                            onClick={() => navigate(`/edit/${product.id}`)}
+                            className="btn btn-primary btn-sm me-2"
+                            onClick={() => handleEdit(user.id)}
                           >
                             Edit
                           </button>
                           <button
                             className="btn btn-danger btn-sm"
-                            onClick={() => handleDeleteClick(product)}
+                            onClick={() => handleDeleteClick(user)}
                           >
                             Delete
                           </button>
@@ -262,7 +244,7 @@ const ProductTable = () => {
                   ></button>
                 </div>
                 <div className="modal-body">
-                  Are you sure you want to delete the product "{productToDelete?.name}"?
+                  Are you sure you want to delete the user "{userToDelete?.username}"?
                 </div>
                 <div className="modal-footer">
                   <button
@@ -285,4 +267,4 @@ const ProductTable = () => {
   );
 };
 
-export default ProductTable;
+export default UsersTable;

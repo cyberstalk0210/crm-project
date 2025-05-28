@@ -1,15 +1,29 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import Sidebar from './sidebar';
 import api from '../utils/api';
 
-const AddProduct = () => {
+function EditProduct() {
+  const { id } = useParams();
   const [product, setProduct] = useState({
     name: '',
     price: '',
     stock: '',
     status: 'In Stock',
   });
+
+  useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        const res = await api.get(`/product/${id}`);
+        setProduct(res.data);
+      } catch (error) {
+        console.error('Error fetching product:', error);
+      }
+    };
+
+    fetchProduct();
+  }, [id]);
 
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -23,8 +37,8 @@ const AddProduct = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      await api.post('/add-product', product); // Adjust endpoint based on your backend
-      navigate('/products');
+      await api.post(`/edit-product/${id}`, product);
+      navigate('/');
     } catch (error) {
       console.error('Error adding product:', error);
     } finally {
@@ -32,8 +46,7 @@ const AddProduct = () => {
     }
   };
 
-
-return (
+  return (
     <div className="d-flex vh-100" style={{ overflow: 'hidden' }}>
       {/* Sidebar */}
       <div
@@ -55,7 +68,7 @@ return (
       <div className="flex-grow-1" style={{ marginLeft: '250px', padding: '20px', overflowY: 'auto' }}>
         <div className="container-fluid">
           <div className="d-flex justify-content-between align-items-center mb-4">
-            <h2 className="mb-0">Add New Product</h2>
+            <h2 className="mb-0">Edit Product #{id}</h2>
             <Link to="/" className="btn btn-outline-secondary">Back to Products</Link>
           </div>
 
@@ -114,8 +127,9 @@ return (
                   <option value="Available">Available</option>
                 </select>
               </div>
+              
               <button type="submit" className="btn btn-primary w-100" disabled={loading}>
-                {loading ? 'Adding...' : 'Add Product'}
+                {loading ? 'Editing...' : 'Update Product'}
               </button>
             </form>
           </div>
@@ -124,4 +138,5 @@ return (
     </div>
   );
 }
-export default AddProduct;
+
+export default EditProduct;

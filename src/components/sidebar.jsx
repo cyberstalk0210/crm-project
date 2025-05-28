@@ -3,9 +3,8 @@ import { NavLink } from 'react-router-dom';
 
 const Sidebar = () => {
   return (
-    <div className="col-2 p-3 bg-light">
-      <h5>UserFlow Inc.</h5>
-      <p>Free Plan</p>
+    <div>
+      <h5>ADMIN PANEL</h5>
       <ul className="nav flex-column">
         <li className="nav-item">
           <NavLink
@@ -15,30 +14,34 @@ const Sidebar = () => {
             Dashboard
           </NavLink>
         </li>
+
         <li className="nav-item">
           <NavLink
             className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
             to="/products"
           >
-            Product
+            Products
           </NavLink>
         </li>
+
         <li className="nav-item">
           <NavLink
             className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
             to="/orders"
           >
-            Order
+            Orders
           </NavLink>
         </li>
+
         <li className="nav-item">
           <NavLink
             className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-            to="/messages"
+            to="/users"
           >
-            Message
+            Users
           </NavLink>
         </li>
+        
       </ul>
     </div>
   );
