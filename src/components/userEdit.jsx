@@ -7,7 +7,7 @@ function UserEdit() {
   const { id } = useParams();
   const [user, setUser] = useState({
     username: '',
-    role: 'USER',
+    role: '',
   });
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -38,7 +38,7 @@ function UserEdit() {
     e.preventDefault();
     setLoading(true);
     try {
-      await axios.put(`http://localhost:8085/api/users/${id}`, user, {
+      await axios.post(`http://localhost:8085/api/users/${id}`, user, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('AccessToken')}`,
         },

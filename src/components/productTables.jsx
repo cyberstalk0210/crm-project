@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import api from '../utils/api';
 import { useNavigate, Link } from 'react-router-dom';
 import Sidebar from './sidebar';
+import DeleteProduct from './deleteProduct';
 
 const ProductTable = () => {
   const [products, setProducts] = useState([]);
@@ -81,8 +82,7 @@ const ProductTable = () => {
 
   // Delete confirmation
   const handleDeleteClick = (product) => {
-    setProductToDelete(product);
-    setShowDeleteModal(true);
+    
   };
 
   const confirmDelete = async () => {
@@ -185,7 +185,7 @@ const ProductTable = () => {
                           </button>
                           <button
                             className="btn btn-danger btn-sm"
-                            onClick={() => handleDeleteClick(product)}
+                            onClick={() => navigate(`/delete/${product.id}`)}
                           >
                             Delete
                           </button>
